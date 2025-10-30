@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"m/testDir"
 	"os"
 )
 
@@ -23,6 +24,7 @@ func main() {
 
 	testFunc()
 
+	testDir.HelperFunc()
 	// sftp.NewClient()
 }
 
