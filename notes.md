@@ -52,5 +52,75 @@ so we can use fmt.Print()
 and wheter or not a function is private or not the naming convention is Print with an uppercase P for public. (we dont have the public keyword in go, just naming convention). Lowercase is private to the package and is not exported (made avaliable for import)
 
 
+collection
+arrays in go have a fixed length. denoted by [5]int. array of length 5, type int
+slices are similar to array with a dynamic length. denoted by []int. 
+actually behind the scenes we're looking at a slice/view of a real fixed length array. slices have a dynamic length. when adding elements to a slice, a new slice is created
+maps key value. denoted map[int]string
 
+reminder: collections are not objects. nothing is an object. 
+so we use global functions like len() on the collection to get the length. 
+not array.length()
+
+
+
+side note:
+i can delcare many init() functions with the same name
+
+
+functions
+can return more than 1 value. not an collection, but 2 values
+
+pointers
+funcs by default have arguments passed by value ie a copy of the original value.
+we can also pass in a pointer to the original value / reference to the value and modify it.
+e.g.
+func birthday(pointerAge *int) {
+    *pointerAge++
+    }
+
+func main() {
+    age:= 22
+    birthday(&age)
+    print(age)
+    print(&age)
+    }
+
+* is the pointer
+& is passing in the reference (memory address to the pointer)
+
+and in the above example, we're passing in a memory address. and telling the function to accept the address and increment it via * 
+
+# errors
+dont have an error func, so there is design pattern
+
+func readUser(id int) (user, err) {
+    // we're reading something and see a bool ok 
+    if ok {
+        return user, nil
+    } else {
+        return nil, errorDetails
+        }
+func main {
+    user, err := readUser(2)
+    }
+            
+
+# control flow
+go only has one equality operator ==
+
+
+
+    if else - can delcare a top level variable that is avaliable in each local if and else block
+    switch - the case can be evauled to a bool can replace large if else blocks, and we have a fallthrough value. breaks by default
+    and switches execult only on the first true case
+
+    for - can use classic for loop. set i; i < length; i++
+    or can use for in
+    for index := range collection {}
+    and can use for each
+    for key, value := range map {}
+
+    and can replicate while. using a statement that evalutes to a bool
+    in summary for loops can be used via classic, range iterator over collection, and directly witha  boolena expression (replacing while loop)
 
