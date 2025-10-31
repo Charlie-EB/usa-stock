@@ -14,6 +14,5 @@ func main() {
 
 	fmt.Println("from main", env["FILENAME"])
 
-	fetcher.GetDir()
-
+	fetcher.GetDir("/")
 }

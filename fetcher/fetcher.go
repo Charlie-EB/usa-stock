@@ -9,10 +9,29 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func GetDir() {
+func GetDir(dir string) {
+
+	client, err := connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	// List files in remote directory
+	files, err := client.ReadDir(dir)
+	if err != nil {
+		log.Fatal("Failed to read directory:", err)
+	}
+
+	fmt.Println("Files on server:")
+	for _, file := range files {
+		fmt.Println(" -", file.Name())
+	}
+}
+
+func connect() (*sftp.Client, error) {
 
 	env, err := utils.GetEnv()
-
 	if err != nil {
 		log.Fatal("Failed to load .env:", err)
 	}
@@ -37,25 +56,12 @@ func GetDir() {
 	if err != nil {
 		log.Fatal("Failed to dial:", err)
 	}
-	defer conn.Close()
 
 	// Create SFTP client
 	client, err := sftp.NewClient(conn)
 	if err != nil {
 		log.Fatal("Failed to create SFTP client:", err)
 	}
-	defer client.Close()
 
-	// List files in remote directory
-	remoteDir := "/"
-	files, err := client.ReadDir(remoteDir)
-	if err != nil {
-		log.Fatal("Failed to read directory:", err)
-	}
-
-	fmt.Println("Files on server:")
-	for _, file := range files {
-		fmt.Println(" -", file.Name())
-	}
-
+	return client, nil
 }
