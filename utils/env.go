@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func EnvGetter() ( map[string]string, error ){
+func GetEnv() ( map[string]string, error ){
 
 	workingDir, _ := os.Getwd()
 	filePath:= workingDir + "/.env"
