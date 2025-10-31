@@ -5,23 +5,24 @@ import (
 	"strings"
 )
 
-func GetEnv() ( map[string]string, error ){
+func GetEnv() (map[string]string, error) {
 
 	workingDir, _ := os.Getwd()
-	filePath:= workingDir + "/.env"
-	data , err:= os.ReadFile(filePath)
+	filePath := workingDir + "/.env"
+	data, err := os.ReadFile(filePath)
 
-	s:= string(data)
+	s := string(data)
 	lines := strings.Split(s, "\n") // Split into lines
 
 	myMap := make(map[string]string) // Initializes an empty map
-	for _,line := range lines {
+	for _, line := range lines {
 		if line == "" {
 			continue
 		}
-		parts := strings.SplitN(line, "=",2)
+		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
-			continue }
+			continue
+		}
 		key := strings.TrimSpace(parts[0])
 		value := strings.TrimSpace(parts[1])
 

@@ -3,16 +3,26 @@ package fetcher
 import (
 	"fmt"
 	"log"
+	"m/utils"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
-func Getdir() {
+func GetDir() {
 
-	env := utils.
+	env, err := utils.GetEnv()
 
-	username := 
+	if err != nil {
+		log.Fatal("Failed to load .env:", err)
+	}
+
+	url := env["URL"]
+	port := env["PORT"]
+	username := env["USERNAME"]
+	password := env["PASSWORD"]
+	host := fmt.Sprintf("%s:%s", url, port)
+
 	// SSH client config
 	config := &ssh.ClientConfig{
 		User: username,
@@ -47,7 +57,5 @@ func Getdir() {
 	for _, file := range files {
 		fmt.Println(" -", file.Name())
 	}
-
-		
 
 }
