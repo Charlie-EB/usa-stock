@@ -1,9 +1,13 @@
 package fetcher
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"m/utils"
+	"os"
+	"path/filepath"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -26,9 +30,11 @@ func GetDir(dir string) error {
 	for _, file := range files {
 		fmt.Println(" -", file.Name())
 	}
+	return nil
 }
 
 func DlSanmar() error {
+	fmt.Println("dl running")
 	env, err := utils.GetEnv()
 	if err != nil {
 		return fmt.Errorf("failed to get env: %w", err)
@@ -36,13 +42,44 @@ func DlSanmar() error {
 	path := env["DIR"]
 	filename := env["FILENAME"]
 
+	// Ensure downloads directory exists
+	if err := os.MkdirAll("downloads", 0755); err != nil {
+		return fmt.Errorf("failed to create downloads directory: %w", err)
+	}
+
 	client, err := connect()
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 	defer client.Close()
 
-	client.Open(path + "/" + filename)
+	remoteFilePath := filepath.Join(path, filename)
+	localFilePath := filepath.Join("downloads", filename)
+
+	// Open the remote file for reading
+	remoteFile, err := client.Open(remoteFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open remote file: %w", err)
+	}
+	defer remoteFile.Close()
+
+	// Create the local file for writing
+	localFile, err := os.Create(localFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %w", err)
+	}
+	defer localFile.Close()
+
+	// Define which columns you want to keep (by name or index)
+	columnsToKeep := []string{"Variant SKU", "Variant Inventory Qty"} // adjust to your needs
+
+	// Parse and filter CSV
+	if err := filterCSV(remoteFile, localFile, columnsToKeep); err != nil {
+		return fmt.Errorf("failed to filter CSV: %w", err)
+	}
+
+	fmt.Printf("Downloaded and filtered %s successfully to %s\n", filename, localFilePath)
+	return nil
 
 }
 
@@ -82,4 +119,61 @@ func connect() (*sftp.Client, error) {
 	}
 
 	return client, nil
+}
+
+func filterCSV(reader io.Reader, writer io.Writer, columnsToKeep []string) error {
+	csvReader := csv.NewReader(reader)
+	csvWriter := csv.NewWriter(writer)
+	defer csvWriter.Flush()
+
+	// Read header
+	header, err := csvReader.Read()
+	if err != nil {
+		return fmt.Errorf("failed to read header: %w", err)
+	}
+
+	// Find indices of columns to keep
+	columnIndices := make([]int, 0)
+	for _, colName := range columnsToKeep {
+		for i, h := range header {
+			if h == colName {
+				columnIndices = append(columnIndices, i)
+				break
+			}
+		}
+	}
+
+	// Write filtered header
+	filteredHeader := make([]string, len(columnIndices))
+	for i, idx := range columnIndices {
+		filteredHeader[i] = header[idx]
+	}
+	if err := csvWriter.Write(filteredHeader); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+
+	// Process rows
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read row: %w", err)
+		}
+
+		// Extract only the columns we want
+		filteredRow := make([]string, len(columnIndices))
+		for i, idx := range columnIndices {
+			if idx < len(row) {
+				filteredRow[i] = row[idx]
+			}
+		}
+
+		if err := csvWriter.Write(filteredRow); err != nil {
+			return fmt.Errorf("failed to write row: %w", err)
+		}
+	}
+
+	return nil
 }
