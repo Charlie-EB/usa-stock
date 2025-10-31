@@ -9,11 +9,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func GetDir(dir string) {
-
+func GetDir(dir string) error {
 	client, err := connect()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to connect: %w", err)
 	}
 	defer client.Close()
 
@@ -29,11 +28,29 @@ func GetDir(dir string) {
 	}
 }
 
+func DlSanmar() error {
+	env, err := utils.GetEnv()
+	if err != nil {
+		return fmt.Errorf("failed to get env: %w", err)
+	}
+	path := env["DIR"]
+	filename := env["FILENAME"]
+
+	client, err := connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+	defer client.Close()
+
+	client.Open(path + "/" + filename)
+
+}
+
 func connect() (*sftp.Client, error) {
 
 	env, err := utils.GetEnv()
 	if err != nil {
-		log.Fatal("Failed to load .env:", err)
+		return nil, fmt.Errorf("failed to get env: %w", err)
 	}
 
 	url := env["URL"]
@@ -54,14 +71,14 @@ func connect() (*sftp.Client, error) {
 	// Connect to the server
 	conn, err := ssh.Dial("tcp", host, config)
 	if err != nil {
-        return nil, fmt.Errorf("failed to dial: %w", err)
-    
+		return nil, fmt.Errorf("failed to dial: %w", err)
+
 	}
 
 	// Create SFTP client
 	client, err := sftp.NewClient(conn)
 	if err != nil {
-        return nil, fmt.Errorf("failed to start client: %w", err)
+		return nil, fmt.Errorf("failed to start client: %w", err)
 	}
 
 	return client, nil
