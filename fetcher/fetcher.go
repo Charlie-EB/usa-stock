@@ -54,13 +54,14 @@ func connect() (*sftp.Client, error) {
 	// Connect to the server
 	conn, err := ssh.Dial("tcp", host, config)
 	if err != nil {
-		log.Fatal("Failed to dial:", err)
+        return nil, fmt.Errorf("failed to dial: %w", err)
+    
 	}
 
 	// Create SFTP client
 	client, err := sftp.NewClient(conn)
 	if err != nil {
-		log.Fatal("Failed to create SFTP client:", err)
+        return nil, fmt.Errorf("failed to start client: %w", err)
 	}
 
 	return client, nil
