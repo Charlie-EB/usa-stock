@@ -183,7 +183,7 @@ func filterCSV(reader io.Reader, writer io.Writer, columnsToKeep []string) error
 			}
 		}
 		rowCount++
-		if rowCount%10000 == 0 {
+		if rowCount%5000 == 0 {
 			fmt.Printf("Processed %d rows...\n", rowCount)
 		}
 
