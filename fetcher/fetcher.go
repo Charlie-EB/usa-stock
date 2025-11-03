@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -70,13 +71,21 @@ func DlSanmar() error {
 	if err != nil {
 		return fmt.Errorf("failed to create local file: %w", err)
 	}
-	defer localFile.Close()
+	// batch writes using an in memory buffer, sized at 16KB. default was 4KB
+	// accumulate writes in memory, then "flushes" automatically when full and does 1 x write. instead of 1 x write for each row
+	bufferedWriter := bufio.NewWriterSize(localFile, 16*1024)
+	
+	// anonymous function that runs at the end to cleanup- capture the last unwritten rows and close the file 
+	defer func() {
+		bufferedWriter.Flush()
+		localFile.Close()
+	}()
 
 	// Define which columns you want to keep (by name or index)
 	columnsToKeep := []string{"Variant SKU", "Variant Inventory Qty"} // adjust to your needs
 
 	// Parse and filter CSV
-	if err := filterCSV(remoteFile, localFile, columnsToKeep); err != nil {
+	if err := filterCSV(remoteFile, bufferedWriter, columnsToKeep); err != nil {
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
@@ -156,6 +165,7 @@ func filterCSV(reader io.Reader, writer io.Writer, columnsToKeep []string) error
 	}
 
 	// Process rows
+	rowCount := 0
 	for {
 		row, err := csvReader.Read()
 		if err == io.EOF {
@@ -172,11 +182,15 @@ func filterCSV(reader io.Reader, writer io.Writer, columnsToKeep []string) error
 				filteredRow[i] = row[idx]
 			}
 		}
+		rowCount++
+		if rowCount%10000 == 0 {
+			fmt.Printf("Processed %d rows...\n", rowCount)
+		}
 
 		if err := csvWriter.Write(filteredRow); err != nil {
 			return fmt.Errorf("failed to write row: %w", err)
 		}
 	}
-
+	fmt.Printf("Total rows processed: %d\n", rowCount)
 	return nil
 }
