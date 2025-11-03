@@ -8,6 +8,7 @@ import (
 	"m/utils"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -34,7 +35,8 @@ func GetDir(dir string) error {
 }
 
 func DlSanmar() error {
-	fmt.Println("dl running")
+	start := time.Now()
+	fmt.Printf("download started at %s\n", start.Format(time.RFC1123))
 	env, err := utils.GetEnv()
 	if err != nil {
 		return fmt.Errorf("failed to get env: %w", err)
@@ -78,7 +80,8 @@ func DlSanmar() error {
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
-	fmt.Printf("Downloaded and filtered %s successfully to %s\n", filename, localFilePath)
+	end:= time.Now()
+	fmt.Printf("Downloaded and filtered %s successfully to %s at %s\n", filename, localFilePath, end.Format(time.RFC1123))
 	return nil
 
 }
