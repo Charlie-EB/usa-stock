@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"m/fetcher"
+	"m/server"
 	"m/utils"
 )
 
@@ -14,5 +14,7 @@ func main() {
 
 	fmt.Println("from main", env["FILENAME"])
 
-	fetcher.DlSanmar()
+	// fetcher.DlSanmar()
+
+	server.Server()
 }

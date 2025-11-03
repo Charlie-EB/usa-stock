@@ -74,8 +74,8 @@ func DlSanmar() error {
 	// batch writes using an in memory buffer, sized at 16KB. default was 4KB
 	// accumulate writes in memory, then "flushes" automatically when full and does 1 x write. instead of 1 x write for each row
 	bufferedWriter := bufio.NewWriterSize(localFile, 16*1024)
-	
-	// anonymous function that runs at the end to cleanup- capture the last unwritten rows and close the file 
+
+	// anonymous function that runs at the end to cleanup- capture the last unwritten rows and close the file
 	defer func() {
 		bufferedWriter.Flush()
 		localFile.Close()
@@ -89,7 +89,7 @@ func DlSanmar() error {
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
-	end:= time.Now()
+	end := time.Now()
 	fmt.Printf("Downloaded and filtered %s successfully to %s at %s\n", filename, localFilePath, end.Format(time.RFC1123))
 	return nil
 
