@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -11,6 +12,17 @@ import (
 
 func Server() error {
 	fmt.Println("sever func called")
+
+	// Load the server's private host key
+    privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key")
+    if err != nil {
+        return fmt.Errorf("failed to load private key: %v", err)
+    }
+    
+    private, err := ssh.ParsePrivateKey(privateBytes)
+    if err != nil {
+        return fmt.Errorf("failed to parse private key: %v", err)
+    }
 
 	// just a reminder- sftp (file operations) > ssh (encryption) > tcp (network connection)
 
@@ -21,6 +33,8 @@ func Server() error {
 			return nil, nil
 		},
 	}
+    config.AddHostKey(private)
+
 
 	// Step 3: Listen on SFTP port (usually 22, but let's use 2022 to avoid conflicts)
 	listener, err := net.Listen("tcp", ":2022")
