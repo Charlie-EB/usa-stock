@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -95,9 +96,14 @@ func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
 func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 	defer channel.Close()
 
+	downloadsPath := "./downloads"
+	absPath, err := filepath.Abs(downloadsPath)
+	if err != nil {
+		fmt.Printf("failed to get absolute path: %v\n", err)
+		return
+	}
 	// debug
-	cwd, _ := os.Getwd()
-	fmt.Println("📂 Serving SFTP from:", cwd+"/downloads")
+	fmt.Println("📂 Serving SFTP from:", absPath)
 
 	for req := range requests {
 		// wait for net ss to say connection.download()
@@ -105,18 +111,20 @@ func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 			// reply yes to net ss
 			req.Reply(true, nil)
 
-
+			// Use custom restricted filesystem
+			fs := &restrictedFS{root: absPath}
+			handlers := sftp.Handlers{
+				FileGet:  fs,
+				FilePut:  fs,
+				FileCmd:  fs,
+				FileList: fs,
+			}
 
 			// create an SFTP server on this channel, serving files
-			server, err := sftp.NewServer(
+			server := sftp.NewRequestServer(
 				channel,
-				sftp.WithServerWorkingDirectory(cwd+"/downloads"),
-				sftp.ReadOnly(),
+				handlers,
 			)
-			if err != nil {
-				fmt.Printf("sftp server init error: %v\n", err)
-				return
-			}
 
 			if err := server.Serve(); err != nil && err != io.EOF {
 				fmt.Printf("sftp server error: %v\n", err)
