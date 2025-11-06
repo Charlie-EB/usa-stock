@@ -14,15 +14,15 @@ func Server() error {
 	fmt.Println("sever func called")
 
 	// Load the server's private host key
-    privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key")
-    if err != nil {
-        return fmt.Errorf("failed to load private key: %v", err)
-    }
-    
-    private, err := ssh.ParsePrivateKey(privateBytes)
-    if err != nil {
-        return fmt.Errorf("failed to parse private key: %v", err)
-    }
+	privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key")
+	if err != nil {
+		return fmt.Errorf("failed to load private key: %v", err)
+	}
+
+	private, err := ssh.ParsePrivateKey(privateBytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse private key: %v", err)
+	}
 
 	// just a reminder- sftp (file operations) > ssh (encryption) > tcp (network connection)
 
@@ -33,8 +33,7 @@ func Server() error {
 			return nil, nil
 		},
 	}
-    config.AddHostKey(private)
-
+	config.AddHostKey(private)
 
 	// Step 3: Listen on SFTP port (usually 22, but let's use 2022 to avoid conflicts)
 	listener, err := net.Listen("tcp", ":2022")
@@ -96,16 +95,22 @@ func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
 func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 	defer channel.Close()
 
+	// debug
+	cwd, _ := os.Getwd()
+	fmt.Println("📂 Serving SFTP from:", cwd+"/downloads")
+
 	for req := range requests {
 		// wait for net ss to say connection.download()
 		if req.Type == "subsystem" && string(req.Payload[4:]) == "sftp" {
 			// reply yes to net ss
 			req.Reply(true, nil)
 
+
+
 			// create an SFTP server on this channel, serving files
 			server, err := sftp.NewServer(
 				channel,
-				sftp.WithServerWorkingDirectory("./downloads"),
+				sftp.WithServerWorkingDirectory(cwd+"/downloads"),
 				sftp.ReadOnly(),
 			)
 			if err != nil {
