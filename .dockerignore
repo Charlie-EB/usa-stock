@@ -6,6 +6,7 @@ data-files/*
 downloads/*
 *.csv
 keys/
+client-node-test/
 
 bin/
 build/
