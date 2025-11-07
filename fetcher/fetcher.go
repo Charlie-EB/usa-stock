@@ -76,6 +76,8 @@ func EnsureFresh(maxAge time.Duration) {
 	go func() {
 		defer downloadInProgress.Delete(filename)
 		if err := DlSanmar(); err != nil {
+			errorMessage := fmt.Sprintf("background download of %s failed from sanmar", filename)
+			sentry.Notify(err, errorMessage)
 			fmt.Printf("Background download failed: %v\n", err)
 		}
 	}()
