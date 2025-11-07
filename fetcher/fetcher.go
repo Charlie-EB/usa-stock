@@ -9,6 +9,7 @@ import (
 	"m/utils"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"m/sentry"
@@ -16,6 +17,10 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
+
+// downloadMutex prevents multiple simultaneous downloads
+var downloadMutex sync.Mutex
+var downloadInProgress sync.Map // tracks if download is in progress for a file
 
 func GetDir(dir string) error {
 	client, err := connect()
@@ -37,7 +42,50 @@ func GetDir(dir string) error {
 	return nil
 }
 
+// EnsureFresh checks if file is fresh and triggers background download if stale
+// Returns immediately - does not block
+func EnsureFresh(maxAge time.Duration) {
+	env, err := utils.GetEnv()
+	if err != nil {
+		fmt.Printf("Warning: failed to get env for freshness check: %v\n", err)
+		return
+	}
+	filename := env["FILENAME"]
+	finalFilePath := filepath.Join("downloads", filename)
+
+	// Check if file exists and is fresh
+	info, err := os.Stat(finalFilePath)
+	if err == nil {
+		age := time.Since(info.ModTime())
+		if age < maxAge {
+			fmt.Printf("File %s is fresh (age: %v), no download needed\n", filename, age)
+			return
+		}
+		fmt.Printf("File %s is stale (age: %v), triggering background refresh\n", filename, age)
+	} else {
+		fmt.Printf("File %s does not exist, triggering download\n", filename)
+	}
+
+	// Check if download is already in progress
+	if _, downloading := downloadInProgress.LoadOrStore(filename, true); downloading {
+		fmt.Printf("Download for %s already in progress, skipping\n", filename)
+		return
+	}
+
+	// Trigger background download (non-blocking)
+	go func() {
+		defer downloadInProgress.Delete(filename)
+		if err := DlSanmar(); err != nil {
+			fmt.Printf("Background download failed: %v\n", err)
+		}
+	}()
+}
+
 func DlSanmar() error {
+	// Acquire lock to prevent concurrent downloads
+	downloadMutex.Lock()
+	defer downloadMutex.Unlock()
+
 	start := time.Now()
 	fmt.Printf("download started at %s\n", start.Format(time.RFC1123))
 	env, err := utils.GetEnv()
@@ -109,17 +157,19 @@ func DlSanmar() error {
 	}
 	defer tempFileReader.Close()
 
-	// Create final output file
-	finalFile, err := os.Create(finalFilePath)
+	// Create processed output file with different temp name
+	// This ensures atomic replacement - we never overwrite the final file until it's complete
+	processedTempPath := filepath.Join("downloads", filename+".processed.tmp")
+	processedFile, err := os.Create(processedTempPath)
 	if err != nil {
 		os.Remove(tempFilePath) // cleanup on error
-		sentry.Notify(err, "failed to create final file")
-		return fmt.Errorf("failed to create final file: %w", err)
+		sentry.Notify(err, "failed to create processed temp file")
+		return fmt.Errorf("failed to create processed temp file: %w", err)
 	}
-	defer finalFile.Close()
+	defer processedFile.Close()
 
 	// Use buffered writer for output
-	bufferedWriter := bufio.NewWriterSize(finalFile, 16*1024)
+	bufferedWriter := bufio.NewWriterSize(processedFile, 16*1024)
 	defer bufferedWriter.Flush()
 
 	// Define which columns you want to keep
@@ -128,17 +178,30 @@ func DlSanmar() error {
 	// Parse and filter CSV from local temp file
 	if err := filterCSV(tempFileReader, bufferedWriter, columnsToKeep); err != nil {
 		os.Remove(tempFilePath) // cleanup on error
-		os.Remove(finalFilePath) // cleanup on error
+		os.Remove(processedTempPath) // cleanup on error
 		sentry.Notify(err, "failed to filter csv")
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
+	// Ensure all data is written to disk before rename
+	bufferedWriter.Flush()
+	processedFile.Close()
+
 	processEnd := time.Now()
 	fmt.Printf("Processed CSV in %v\n", processEnd.Sub(processStart))
 
-	// Step 3: Clean up temp file (final file is already created)
+	// Step 3: Atomic rename - this is instant and atomic on Unix/Linux
+	// Active file handles continue to work with the old file content
+	// New opens will get the new file
+	if err := os.Rename(processedTempPath, finalFilePath); err != nil {
+		os.Remove(tempFilePath) // cleanup on error
+		os.Remove(processedTempPath) // cleanup on error
+		sentry.Notify(err, "failed to rename processed file")
+		return fmt.Errorf("failed to rename processed file: %w", err)
+	}
+
+	// Clean up raw temp file
 	if err := os.Remove(tempFilePath); err != nil {
-		// Log but don't fail - temp file cleanup is not critical
 		fmt.Printf("Warning: failed to remove temp file: %v\n", err)
 	}
 

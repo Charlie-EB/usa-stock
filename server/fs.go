@@ -8,6 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"m/fetcher"
 
 	"github.com/pkg/sftp"
 )
@@ -81,6 +84,11 @@ func (fs *restrictedFS) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 		return nil, err
 	}
 
+	// Trigger background refresh if stale (non-blocking, serves immediately)
+	// Check freshness and download in background if needed (7 hour max age)
+	fetcher.EnsureFresh(7 * time.Hour)
+
+	// Open and serve file immediately (even if stale, it will be refreshed in background)
 	file, err := os.Open(path)
 	if err != nil {
 		sentry.Notify(err, "failed to open file")
