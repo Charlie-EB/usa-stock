@@ -1,4 +1,4 @@
-
+# notes about learning go
 constants can only be bool, string or numbers.
 
 why?
