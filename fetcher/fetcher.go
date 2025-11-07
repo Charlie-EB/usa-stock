@@ -114,7 +114,7 @@ func DlSanmar() error {
 	// Step 1: Download the entire file efficiently to a temp file
 	fmt.Println("Downloading file from SFTP...")
 	downloadStart := time.Now()
-	
+
 	// Open remote file
 	remoteFile, err := client.Open(remoteFilePath)
 	if err != nil {
@@ -140,14 +140,14 @@ func DlSanmar() error {
 		return fmt.Errorf("failed to download file: %w", err)
 	}
 	tempFile.Close()
-	
+
 	downloadEnd := time.Now()
 	fmt.Printf("Downloaded %d bytes in %v\n", written, downloadEnd.Sub(downloadStart))
 
 	// Step 2: Process the downloaded file locally
 	fmt.Println("Processing and filtering CSV...")
 	processStart := time.Now()
-	
+
 	// Open the temp file for reading
 	tempFileReader, err := os.Open(tempFilePath)
 	if err != nil {
@@ -177,7 +177,7 @@ func DlSanmar() error {
 
 	// Parse and filter CSV from local temp file
 	if err := filterCSV(tempFileReader, bufferedWriter, columnsToKeep); err != nil {
-		os.Remove(tempFilePath) // cleanup on error
+		os.Remove(tempFilePath)      // cleanup on error
 		os.Remove(processedTempPath) // cleanup on error
 		sentry.Notify(err, "failed to filter csv")
 		return fmt.Errorf("failed to filter CSV: %w", err)
@@ -194,7 +194,7 @@ func DlSanmar() error {
 	// Active file handles continue to work with the old file content
 	// New opens will get the new file
 	if err := os.Rename(processedTempPath, finalFilePath); err != nil {
-		os.Remove(tempFilePath) // cleanup on error
+		os.Remove(tempFilePath)      // cleanup on error
 		os.Remove(processedTempPath) // cleanup on error
 		sentry.Notify(err, "failed to rename processed file")
 		return fmt.Errorf("failed to rename processed file: %w", err)
@@ -206,7 +206,7 @@ func DlSanmar() error {
 	}
 
 	end := time.Now()
-	fmt.Printf("Downloaded and filtered %s successfully to %s at %s (total time: %v)\n", 
+	fmt.Printf("Downloaded and filtered %s successfully to %s at %s (total time: %v)\n",
 		filename, finalFilePath, end.Format(time.RFC1123), end.Sub(start))
 	return nil
 }
