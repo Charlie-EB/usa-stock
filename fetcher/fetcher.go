@@ -132,9 +132,7 @@ func DlSanmar() error {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 
-	// Use buffered copy for efficient bulk transfer (64KB buffer)
-	bufferedRemoteReader := bufio.NewReaderSize(remoteFile, 64*1024)
-	written, err := io.Copy(tempFile, bufferedRemoteReader)
+	written, err := io.Copy(tempFile, remoteFile)
 	if err != nil {
 		tempFile.Close()
 		os.Remove(tempFilePath) // cleanup on error
