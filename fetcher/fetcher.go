@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"m/sentry"
+
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -52,6 +54,7 @@ func DlSanmar() error {
 
 	client, err := connect()
 	if err != nil {
+		sentry.Notify(err, "failed to connect to sanmar ftp")
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 	defer client.Close()
@@ -62,6 +65,7 @@ func DlSanmar() error {
 	// Open the remote file for reading
 	remoteFile, err := client.Open(remoteFilePath)
 	if err != nil {
+		sentry.Notify(err, "failed to open remote file on sanmar ftp")
 		return fmt.Errorf("failed to open remote file: %w", err)
 	}
 	defer remoteFile.Close()
@@ -69,6 +73,7 @@ func DlSanmar() error {
 	// Create the local file for writing
 	localFile, err := os.Create(localFilePath)
 	if err != nil {
+		sentry.Notify(err, "failed to create local file ")
 		return fmt.Errorf("failed to create local file: %w", err)
 	}
 	// batch writes using an in memory buffer, sized at 16KB. default was 4KB
@@ -86,6 +91,7 @@ func DlSanmar() error {
 
 	// Parse and filter CSV
 	if err := filterCSV(remoteFile, bufferedWriter, columnsToKeep); err != nil {
+		sentry.Notify(err, "failed to filter csv ")
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
