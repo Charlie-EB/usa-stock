@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"m/fetcher"
 	"m/sentry"
+	"m/server"
 	"m/utils"
+	"time"
 )
 
 func main() {
@@ -11,19 +14,15 @@ func main() {
 	fmt.Println("from main", env["FILENAME"])
 
 	sentry.Setup()
-
-/*	
-
+	
 	// bg file get
 	go func() {
 		for {
-			fetcher.DlSanmar()
 			time.Sleep(4 * time.Hour)
+			fetcher.DlSanmar()
 		}
 	}()
-
 	fetcher.DlSanmar()
 	server.Server()
 
-*/	
 }
