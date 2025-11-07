@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"m/fetcher"
 	"m/sentry"
 	"m/server"
 	"m/utils"
@@ -14,18 +13,7 @@ func main() {
 
 	sentry.Setup()
 
-	/*
-		// bg file get
-		go func() {
-			for {
-				time.Sleep(4 * time.Hour)
-				fetcher.DlSanmar()
-			}
-		}()
-		fetcher.DlSanmar()
-	*/
-
-	fetcher.DlSanmar()
+	// fetcher.DlSanmar()
 	err := server.Server()
 	if err != nil {
 		sentry.Notify(err, "main server error")
