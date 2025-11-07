@@ -15,17 +15,20 @@ func main() {
 	sentry.Setup()
 
 	/*
-	// bg file get
-	go func() {
-		for {
-			time.Sleep(4 * time.Hour)
-			fetcher.DlSanmar()
-		}
-	}()
-	fetcher.DlSanmar()
+		// bg file get
+		go func() {
+			for {
+				time.Sleep(4 * time.Hour)
+				fetcher.DlSanmar()
+			}
+		}()
+		fetcher.DlSanmar()
 	*/
-	
+
 	fetcher.DlSanmar()
-	server.Server()
+	err := server.Server()
+	if err != nil {
+		sentry.Notify(err, "main server error")
+	}
 
 }
