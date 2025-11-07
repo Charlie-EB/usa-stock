@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"m/fetcher"
 	"m/sentry"
 	"m/server"
 	"m/utils"
@@ -24,6 +25,7 @@ func main() {
 	fetcher.DlSanmar()
 	*/
 	
+	fetcher.DlSanmar()
 	server.Server()
 
 }

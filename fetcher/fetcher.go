@@ -60,9 +60,14 @@ func DlSanmar() error {
 	defer client.Close()
 
 	remoteFilePath := filepath.Join(path, filename)
-	localFilePath := filepath.Join("downloads", filename)
+	tempFilePath := filepath.Join("downloads", filename+".tmp")
+	finalFilePath := filepath.Join("downloads", filename)
 
-	// Open the remote file for reading
+	// Step 1: Download the entire file efficiently to a temp file
+	fmt.Println("Downloading file from SFTP...")
+	downloadStart := time.Now()
+	
+	// Open remote file
 	remoteFile, err := client.Open(remoteFilePath)
 	if err != nil {
 		sentry.Notify(err, "failed to open remote file on sanmar ftp")
@@ -70,35 +75,77 @@ func DlSanmar() error {
 	}
 	defer remoteFile.Close()
 
-	// Create the local file for writing
-	localFile, err := os.Create(localFilePath)
+	// Create temp file for download
+	tempFile, err := os.Create(tempFilePath)
 	if err != nil {
-		sentry.Notify(err, "failed to create local file ")
-		return fmt.Errorf("failed to create local file: %w", err)
+		sentry.Notify(err, "failed to create temp file")
+		return fmt.Errorf("failed to create temp file: %w", err)
 	}
-	// batch writes using an in memory buffer, sized at 16KB. default was 4KB
-	// accumulate writes in memory, then "flushes" automatically when full and does 1 x write. instead of 1 x write for each row
-	bufferedWriter := bufio.NewWriterSize(localFile, 16*1024)
 
-	// anonymous function that runs at the end to cleanup- capture the last unwritten rows and close the file
-	defer func() {
-		bufferedWriter.Flush()
-		localFile.Close()
-	}()
+	// Use buffered copy for efficient bulk transfer (64KB buffer)
+	bufferedRemoteReader := bufio.NewReaderSize(remoteFile, 64*1024)
+	written, err := io.Copy(tempFile, bufferedRemoteReader)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFilePath) // cleanup on error
+		sentry.Notify(err, "failed to download file from sanmar ftp")
+		return fmt.Errorf("failed to download file: %w", err)
+	}
+	tempFile.Close()
+	
+	downloadEnd := time.Now()
+	fmt.Printf("Downloaded %d bytes in %v\n", written, downloadEnd.Sub(downloadStart))
 
-	// Define which columns you want to keep (by name or index)
-	columnsToKeep := []string{"Variant SKU", "Variant Inventory Qty"} // adjust to your needs
+	// Step 2: Process the downloaded file locally
+	fmt.Println("Processing and filtering CSV...")
+	processStart := time.Now()
+	
+	// Open the temp file for reading
+	tempFileReader, err := os.Open(tempFilePath)
+	if err != nil {
+		os.Remove(tempFilePath) // cleanup on error
+		sentry.Notify(err, "failed to open temp file for processing")
+		return fmt.Errorf("failed to open temp file: %w", err)
+	}
+	defer tempFileReader.Close()
 
-	// Parse and filter CSV
-	if err := filterCSV(remoteFile, bufferedWriter, columnsToKeep); err != nil {
-		sentry.Notify(err, "failed to filter csv ")
+	// Create final output file
+	finalFile, err := os.Create(finalFilePath)
+	if err != nil {
+		os.Remove(tempFilePath) // cleanup on error
+		sentry.Notify(err, "failed to create final file")
+		return fmt.Errorf("failed to create final file: %w", err)
+	}
+	defer finalFile.Close()
+
+	// Use buffered writer for output
+	bufferedWriter := bufio.NewWriterSize(finalFile, 16*1024)
+	defer bufferedWriter.Flush()
+
+	// Define which columns you want to keep
+	columnsToKeep := []string{"Variant SKU", "Variant Inventory Qty"}
+
+	// Parse and filter CSV from local temp file
+	if err := filterCSV(tempFileReader, bufferedWriter, columnsToKeep); err != nil {
+		os.Remove(tempFilePath) // cleanup on error
+		os.Remove(finalFilePath) // cleanup on error
+		sentry.Notify(err, "failed to filter csv")
 		return fmt.Errorf("failed to filter CSV: %w", err)
 	}
 
-	end := time.Now()
-	fmt.Printf("Downloaded and filtered %s successfully to %s at %s\n", filename, localFilePath, end.Format(time.RFC1123))
-	return nil
+	processEnd := time.Now()
+	fmt.Printf("Processed CSV in %v\n", processEnd.Sub(processStart))
 
+	// Step 3: Clean up temp file (final file is already created)
+	if err := os.Remove(tempFilePath); err != nil {
+		// Log but don't fail - temp file cleanup is not critical
+		fmt.Printf("Warning: failed to remove temp file: %v\n", err)
+	}
+
+	end := time.Now()
+	fmt.Printf("Downloaded and filtered %s successfully to %s at %s (total time: %v)\n", 
+		filename, finalFilePath, end.Format(time.RFC1123), end.Sub(start))
+	return nil
 }
 
 func connect() (*sftp.Client, error) {
