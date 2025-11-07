@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"m/sentry"
 	"net"
 	"os"
 	"path/filepath"
@@ -39,6 +40,7 @@ func Server() error {
 	// Step 3: Listen on SFTP port (usually 22, but let's use 2022 to avoid conflicts)
 	listener, err := net.Listen("tcp", ":2022")
 	if err != nil {
+		sentry.Notify(err, "failed to listen on sftp port")
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	defer listener.Close()
@@ -65,6 +67,7 @@ func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
 	// Perform SSH handshakem and returns sshConn = encrypted SSH connection tunnel, chans = channel that will receive ssh channels (what flows through the tunnel. like a stream of data)
 	sshConn, chans, reqs, err := ssh.NewServerConn(netConn, config)
 	if err != nil {
+		sentry.Notify(err, "SSH handshake failed")
 		fmt.Printf("SSH handshake failed: %v\n", err)
 		return
 	}
@@ -99,6 +102,7 @@ func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 	downloadsPath := "./downloads"
 	absPath, err := filepath.Abs(downloadsPath)
 	if err != nil {
+		sentry.Notify(err, "failed to get absolute path for downloads dir")
 		fmt.Printf("failed to get absolute path: %v\n", err)
 		return
 	}
@@ -127,6 +131,7 @@ func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 			)
 
 			if err := server.Serve(); err != nil && err != io.EOF {
+				sentry.Notify(err, "sftp server error")
 				fmt.Printf("sftp server error: %v\n", err)
 			}
 			return

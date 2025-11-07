@@ -4,6 +4,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"m/sentry"
 	"os"
 	"path/filepath"
 	"strings"
@@ -82,6 +83,7 @@ func (fs *restrictedFS) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 
 	file, err := os.Open(path)
 	if err != nil {
+		sentry.Notify(err, "failed to open file")
 		fmt.Printf("❌ File open error: %v\n", err)
 		return nil, err
 	}
