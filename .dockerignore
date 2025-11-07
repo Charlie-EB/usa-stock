@@ -6,3 +6,10 @@ data-files/*
 downloads/*
 *.csv
 keys/
+
+bin/
+build/
+dist/
+*.exe
+*.out
+*.log
