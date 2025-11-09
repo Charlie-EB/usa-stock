@@ -16,7 +16,7 @@ func Server() error {
 	fmt.Println("sever func called")
 
 	// Load the server's private host key
-	privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key")
+	privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key_go_usa")
 	if err != nil {
 		return fmt.Errorf("failed to load private key: %v", err)
 	}
