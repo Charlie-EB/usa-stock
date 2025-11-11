@@ -22,6 +22,20 @@ import (
 var downloadMutex sync.Mutex
 var downloadInProgress sync.Map // tracks if download is in progress for a file
 
+
+var (
+    secrets     map[string]string
+    secretsOnce sync.Once
+    secretsErr  error
+)
+
+func loadSecrets() (map[string]string, error) {
+    secretsOnce.Do(func() {
+        secrets, secretsErr = utils.GetDockerSecret()
+    })
+    return secrets, secretsErr
+}
+
 func GetDir(dir string) error {
 	client, err := connect()
 	if err != nil {
@@ -213,15 +227,15 @@ func DlSanmar() error {
 
 func connect() (*sftp.Client, error) {
 
-	env, err := utils.GetEnv()
+	secrets, err := loadSecrets() 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get env: %w", err)
 	}
 
-	url := env["REMOTE_URL"]
-	port := env["REMOTE_PORT"]
-	username := env["REMOTE_USERNAME"]
-	password := env["REMOTE_PASSWORD"]
+	url := secrets["go_remote_url"]
+	port := secrets["go_remote_port"]
+	username := secrets["go_remote_username"]
+	password := secrets["go_remote_password"]
 	host := fmt.Sprintf("%s:%s", url, port)
 
 	// SSH client config
