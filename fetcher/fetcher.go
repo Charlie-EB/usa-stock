@@ -22,7 +22,6 @@ import (
 var downloadMutex sync.Mutex
 var downloadInProgress sync.Map // tracks if download is in progress for a file
 
-
 var (
     secrets     map[string]string
     secretsOnce sync.Once
@@ -59,12 +58,8 @@ func GetDir(dir string) error {
 // EnsureFresh checks if file is fresh and triggers background download if stale
 // Returns immediately - does not block
 func EnsureFresh(maxAge time.Duration) {
-	env, err := utils.GetEnv()
-	if err != nil {
-		fmt.Printf("Warning: failed to get env for freshness check: %v\n", err)
-		return
-	}
-	filename := env["REMOTE_FILENAME"]
+	
+	filename:="sanmar_shopify.csv"
 	finalFilePath := filepath.Join("downloads", filename)
 
 	// Check if file exists and is fresh
@@ -104,12 +99,9 @@ func DlSanmar() error {
 
 	start := time.Now()
 	fmt.Printf("download started at %s\n", start.Format(time.RFC1123))
-	env, err := utils.GetEnv()
-	if err != nil {
-		return fmt.Errorf("failed to get env: %w", err)
-	}
-	path := env["REMOTE_DIR"]
-	filename := env["REMOTE_FILENAME"]
+
+	path:="/SanMarPDD"
+	filename:="sanmar_shopify.csv"
 
 	// Ensure downloads directory exists
 	if err := os.MkdirAll("downloads", 0755); err != nil {
