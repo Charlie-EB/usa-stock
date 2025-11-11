@@ -19,7 +19,8 @@ func Setup() {
 
 	err = sentry.Init(sentry.ClientOptions{
 		Dsn:   secrets["sentry_dsn"],
-		Debug: true,
+		Debug: false,
+		Release: "dev",
 	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
