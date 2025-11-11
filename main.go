@@ -1,20 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"m/fetcher"
+	"log"
 	"m/sentry"
 	"m/server"
-	"m/utils"
 )
 
 func main() {
 
 	sentry.Setup()
 
-	fetcher.DlSanmar()
+	// fetcher.DlSanmar()
+
 	err := server.Server()
 	if err != nil {
+		log.Printf("ERROR: main server error: %v", err)
 		sentry.Notify(err, "main server error")
 	}
 
