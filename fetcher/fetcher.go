@@ -23,16 +23,16 @@ var downloadMutex sync.Mutex
 var downloadInProgress sync.Map // tracks if download is in progress for a file
 
 var (
-    secrets     map[string]string
-    secretsOnce sync.Once
-    secretsErr  error
+	secrets     map[string]string
+	secretsOnce sync.Once
+	secretsErr  error
 )
 
 func loadSecrets() (map[string]string, error) {
-    secretsOnce.Do(func() {
-        secrets, secretsErr = utils.GetDockerSecret()
-    })
-    return secrets, secretsErr
+	secretsOnce.Do(func() {
+		secrets, secretsErr = utils.GetDockerSecret()
+	})
+	return secrets, secretsErr
 }
 
 func GetDir(dir string) error {
@@ -58,8 +58,8 @@ func GetDir(dir string) error {
 // EnsureFresh checks if file is fresh and triggers background download if stale
 // Returns immediately - does not block
 func EnsureFresh(maxAge time.Duration) {
-	
-	filename:="sanmar_shopify.csv"
+
+	filename := "sanmar_shopify.csv"
 	finalFilePath := filepath.Join("downloads", filename)
 
 	// Check if file exists and is fresh
@@ -100,8 +100,8 @@ func DlSanmar() error {
 	start := time.Now()
 	fmt.Printf("download started at %s\n", start.Format(time.RFC1123))
 
-	path:="/SanMarPDD"
-	filename:="sanmar_shopify.csv"
+	path := "/SanMarPDD"
+	filename := "sanmar_shopify.csv"
 
 	// Ensure downloads directory exists
 	if err := os.MkdirAll("downloads", 0755); err != nil {
@@ -219,7 +219,7 @@ func DlSanmar() error {
 
 func connect() (*sftp.Client, error) {
 
-	secrets, err := loadSecrets() 
+	secrets, err := loadSecrets()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get env: %w", err)
 	}

@@ -22,32 +22,32 @@ func ReadDockerSecret(name string) (string, error) {
 
 // GetDockerSecret loads configuration from Docker secrets with .env fallback
 func GetDockerSecret() (map[string]string, error) {
-    secrets := make(map[string]string)
-    
-    // List of all secrets we need
-    secretNames := []string{
-        "go_remote_url",
-        "go_remote_port",
-        "go_remote_username",
-        "go_remote_password",
-        "go_remote_dir",
-        "go_remote_filename",
-        "sentry_dsn",
-    }
-    
-    for _, secretName := range secretNames {
-        value, err := ReadDockerSecret(secretName)
-        if err != nil {
-            // Fallback to environment variable for local dev
-            envName := strings.ToUpper(secretName)
-            value = os.Getenv(envName)
-            if value == "" {
-                return nil, fmt.Errorf("config %s not found in secrets or env", secretName)
-            }
-            fmt.Printf("Using env var for %s (secret not found)\n", secretName)
-        }
-        secrets[secretName] = value
-    }
-    
-    return secrets, nil
+	secrets := make(map[string]string)
+
+	// List of all secrets we need
+	secretNames := []string{
+		"go_remote_url",
+		"go_remote_port",
+		"go_remote_username",
+		"go_remote_password",
+		"go_remote_dir",
+		"go_remote_filename",
+		"sentry_dsn",
+	}
+
+	for _, secretName := range secretNames {
+		value, err := ReadDockerSecret(secretName)
+		if err != nil {
+			// Fallback to environment variable for local dev
+			envName := strings.ToUpper(secretName)
+			value = os.Getenv(envName)
+			if value == "" {
+				return nil, fmt.Errorf("config %s not found in secrets or env", secretName)
+			}
+			fmt.Printf("Using env var for %s (secret not found)\n", secretName)
+		}
+		secrets[secretName] = value
+	}
+
+	return secrets, nil
 }
