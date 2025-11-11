@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 	"m/sentry"
+	"m/utils"
 	"net"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/sftp"
@@ -14,18 +14,19 @@ import (
 
 func Server() error {
 	fmt.Println("sever func called")
-
-	// Load the server's private host key
-	privateBytes, err := os.ReadFile("./keys/ssh_host_rsa_key_go_usa")
-	if err != nil {
-		return fmt.Errorf("failed to load private key: %v", err)
-	}
-
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse private key: %v", err)
-	}
-
+	  
+	// read docker secret which returns a string
+    privateKeyStr, err := utils.ReadDockerSecret("ssh_host_rsa_key_go_usa")
+    if err != nil {
+        return fmt.Errorf("failed to load private key: %v", err)
+    }
+    
+    // Convert string to bytes and parse
+    private, err := ssh.ParsePrivateKey([]byte(privateKeyStr))
+    if err != nil {
+        return fmt.Errorf("failed to parse private key: %v", err)
+    }
+	
 	// just a reminder- sftp (file operations) > ssh (encryption) > tcp (network connection)
 
 	config := &ssh.ServerConfig{
