@@ -30,8 +30,6 @@ func GetDockerSecret() (map[string]string, error) {
 		"go_remote_port",
 		"go_remote_username",
 		"go_remote_password",
-		"go_remote_dir",
-		"go_remote_filename",
 		"sentry_dsn",
 	}
 
