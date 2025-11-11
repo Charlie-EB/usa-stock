@@ -9,8 +9,6 @@ import (
 )
 
 func main() {
-	env, _ := utils.GetEnv()
-	fmt.Println("from main", env["REMOTE_FILENAME"])
 
 	sentry.Setup()
 
