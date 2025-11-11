@@ -11,13 +11,10 @@ import (
 
 func Setup() {
 
-	env, err := utils.GetEnv()
-	if err != nil {
-		log.Fatalf("failed to get env: %w", err)
-	}
+	secrets , _ := utils.GetDockerSecret()
 
-	err = sentry.Init(sentry.ClientOptions{
-		Dsn:   env["SENTRY_DSN"],
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:   secrets["sentry_dsn"],
 		Debug: true,
 	})
 	if err != nil {
