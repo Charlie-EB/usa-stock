@@ -50,7 +50,7 @@ func EnsureFresh(maxAge time.Duration) {
 		fmt.Printf("Warning: failed to get env for freshness check: %v\n", err)
 		return
 	}
-	filename := env["FILENAME"]
+	filename := env["REMOTE_FILENAME"]
 	finalFilePath := filepath.Join("downloads", filename)
 
 	// Check if file exists and is fresh
@@ -94,8 +94,8 @@ func DlSanmar() error {
 	if err != nil {
 		return fmt.Errorf("failed to get env: %w", err)
 	}
-	path := env["DIR"]
-	filename := env["FILENAME"]
+	path := env["REMOTE_DIR"]
+	filename := env["REMOTE_FILENAME"]
 
 	// Ensure downloads directory exists
 	if err := os.MkdirAll("downloads", 0755); err != nil {
@@ -218,10 +218,10 @@ func connect() (*sftp.Client, error) {
 		return nil, fmt.Errorf("failed to get env: %w", err)
 	}
 
-	url := env["URL"]
-	port := env["PORT"]
-	username := env["USERNAME"]
-	password := env["PASSWORD"]
+	url := env["REMOTE_URL"]
+	port := env["REMOTE_PORT"]
+	username := env["REMOTE_USERNAME"]
+	password := env["REMOTE_PASSWORD"]
 	host := fmt.Sprintf("%s:%s", url, port)
 
 	// SSH client config
