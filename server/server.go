@@ -6,6 +6,7 @@ import (
 	"m/sentry"
 	"m/utils"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/sftp"
@@ -20,20 +21,42 @@ func Server() error {
     if err != nil {
         return fmt.Errorf("failed to load private key: %v", err)
     }
-    
     // Convert string to bytes and parse
     private, err := ssh.ParsePrivateKey([]byte(privateKeyStr))
     if err != nil {
         return fmt.Errorf("failed to parse private key: %v", err)
     }
+
+	 // Load the authorized public key from repo
+    authorizedKeyBytes, err := os.ReadFile("./authorised/go_usa_stock.pub")
+    if err != nil {
+        return fmt.Errorf("failed to load authorized key: %v", err)
+    }
+    // Parse it
+    authorizedPubKey, _, _, _, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
+    if err != nil {
+        return fmt.Errorf("failed to parse authorized key: %v", err)
+    }
+    authorizedFingerprint := ssh.FingerprintSHA256(authorizedPubKey)
+    fmt.Printf("✅ Loaded authorized key: %s\n", authorizedFingerprint)
 	
 	// just a reminder- sftp (file operations) > ssh (encryption) > tcp (network connection)
 
 	config := &ssh.ServerConfig{
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
-			// TODO: add a Check if this public key is authorized
-			// For now, let's accept any key (we'll fix this next)
-			return nil, nil
+			clientFingerprint := ssh.FingerprintSHA256(pubKey)
+           
+			if clientFingerprint == authorizedFingerprint {
+                fmt.Printf("✅ Authorized user '%s' with key %s\n", c.User(), clientFingerprint)
+                return &ssh.Permissions{
+                    Extensions: map[string]string{
+                        "pubkey-fp": clientFingerprint,
+                    },
+                }, nil
+            }
+            
+            fmt.Printf("❌ Rejected unauthorized user '%s' with key %s\n", c.User(), clientFingerprint)
+            return nil, fmt.Errorf("unauthorized key")
 		},
 	}
 	config.AddHostKey(private)
