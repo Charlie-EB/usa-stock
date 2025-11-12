@@ -18,6 +18,9 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /go/bin/app .
 # It contains nothing but the kernel and the Go binary.
 FROM scratch
 
+# default workdir is / but i want to be explicit 
+WORKDIR / 
+
 # Set environment variable (optional, but good practice)
 ENV CGO_ENABLED=0
 
@@ -25,7 +28,6 @@ ENV CGO_ENABLED=0
 COPY --from=builder /go/bin/app /usr/local/bin/app
 # dont forget the pub key
 COPY --from=builder /usr/src/app/authorised /authorised
-
 
 # Command to run the application
 CMD ["/usr/local/bin/app"]
