@@ -128,7 +128,7 @@ func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
 func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 	defer channel.Close()
 
-	downloadsPath := "./downloads"
+	downloadsPath := "/app/downloads"  // Absolute path
 	absPath, err := filepath.Abs(downloadsPath)
 	if err != nil {
 		sentry.Notify(err, "failed to get absolute path for downloads dir")

@@ -60,7 +60,7 @@ func GetDir(dir string) error {
 func EnsureFresh(maxAge time.Duration) {
 
 	filename := "sanmar_shopify.csv"
-	finalFilePath := filepath.Join("downloads", filename)
+	finalFilePath := filepath.Join("/app/downloads", filename)
 
 	// Check if file exists and is fresh
 	info, err := os.Stat(finalFilePath)
@@ -102,11 +102,13 @@ func DlSanmar() error {
 
 	path := "/SanMarPDD"
 	filename := "sanmar_shopify.csv"
+	downloadsPath := "/app/downloads"  // Absolute path
+	
 
-	// Ensure downloads directory exists
-	if err := os.MkdirAll("downloads", 0755); err != nil {
-		return fmt.Errorf("failed to create downloads directory: %w", err)
-	}
+	if err := os.MkdirAll(downloadsPath, 0755); err != nil {
+        sentry.Notify(err, "failed to create downloads directory")
+        return fmt.Errorf("failed to create directory %s: %w", downloadsPath, err)
+    }
 
 	client, err := connect()
 	if err != nil {
@@ -116,8 +118,8 @@ func DlSanmar() error {
 	defer client.Close()
 
 	remoteFilePath := filepath.Join(path, filename)
-	tempFilePath := filepath.Join("downloads", filename+".tmp")
-	finalFilePath := filepath.Join("downloads", filename)
+	tempFilePath := filepath.Join(downloadsPath, filename+".tmp")
+	finalFilePath := filepath.Join(downloadsPath, filename)
 
 	// Step 1: Download the entire file efficiently to a temp file
 	fmt.Println("Downloading file from SFTP...")
@@ -165,7 +167,7 @@ func DlSanmar() error {
 
 	// Create processed output file with different temp name
 	// This ensures atomic replacement - we never overwrite the final file until it's complete
-	processedTempPath := filepath.Join("downloads", filename+".processed.tmp")
+	processedTempPath := filepath.Join(downloadsPath, filename+".processed.tmp")
 	processedFile, err := os.Create(processedTempPath)
 	if err != nil {
 		os.Remove(tempFilePath) // cleanup on error
