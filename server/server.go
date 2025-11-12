@@ -38,23 +38,27 @@ func Server() error {
 	}
 	config.AddHostKey(private)
 
-	// Step 3: Listen on SFTP port (usually 22, but let's use 2022 to avoid conflicts)
-	listener, err := net.Listen("tcp", ":2022")
+	listener, err := net.Listen("tcp", ":22")
 	if err != nil {
 		sentry.Notify(err, "failed to listen on sftp port")
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 	defer listener.Close()
 
-	fmt.Println("SFTP server listening on :2022")
+	fmt.Println("SFTP server listening on :22 internally (2223)")
 
 	// Step 4: Accept connections
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			sentry.Notify(err, "failed to accept connection")
 			fmt.Printf("failed to accept connection: %v\n", err)
 			continue
 		}
+
+
+        // ✅ ADD THIS LOG
+        fmt.Printf("🔗 TCP connection accepted from %s\n", conn.RemoteAddr())
 
 		// Handle each connection in a goroutine
 		go handleConnection(conn, config)
@@ -63,6 +67,7 @@ func Server() error {
 
 // this func is the ssh layer. its given a raw tcp connection via netConn
 func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
+	fmt.Printf("handle connection fun running")
 	defer netConn.Close()
 
 	// Perform SSH handshakem and returns sshConn = encrypted SSH connection tunnel, chans = channel that will receive ssh channels (what flows through the tunnel. like a stream of data)
