@@ -23,6 +23,9 @@ ENV CGO_ENABLED=0
 
 # Copy the built binary from the builder stage
 COPY --from=builder /go/bin/app /usr/local/bin/app
+# dont forget the pub key
+COPY --from=builder /usr/src/app/authorised /authorised
+
 
 # Command to run the application
 CMD ["/usr/local/bin/app"]
