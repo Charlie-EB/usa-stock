@@ -44,6 +44,10 @@ func Server() error {
 
 	config := &ssh.ServerConfig{
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
+		
+			if c.User() != "netsuite-client" {
+			return nil, fmt.Errorf("login not allowed for user: %s", c.User()) }
+
 			clientFingerprint := ssh.FingerprintSHA256(pubKey)
 
 			if clientFingerprint == authorizedFingerprint {
