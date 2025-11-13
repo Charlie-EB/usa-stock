@@ -15,48 +15,48 @@ import (
 
 func Server() error {
 	fmt.Println("sever func called")
-	  
-	// read docker secret which returns a string
-    privateKeyStr, err := utils.ReadDockerSecret("ssh_host_rsa_key_go_usa")
-    if err != nil {
-        return fmt.Errorf("failed to load private key: %v", err)
-    }
-    // Convert string to bytes and parse
-    private, err := ssh.ParsePrivateKey([]byte(privateKeyStr))
-    if err != nil {
-        return fmt.Errorf("failed to parse private key: %v", err)
-    }
 
-	 // Load the authorized public key from repo
-    authorizedKeyBytes, err := os.ReadFile("./authorised/go_usa_stock.pub")
-    if err != nil {
-        return fmt.Errorf("failed to load authorized key: %v", err)
-    }
-    // Parse it
-    authorizedPubKey, _, _, _, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
-    if err != nil {
-        return fmt.Errorf("failed to parse authorized key: %v", err)
-    }
-    authorizedFingerprint := ssh.FingerprintSHA256(authorizedPubKey)
-    fmt.Printf("✅ Loaded authorized key: %s\n", authorizedFingerprint)
-	
+	// read docker secret which returns a string
+	privateKeyStr, err := utils.ReadDockerSecret("ssh_host_rsa_key_go_usa")
+	if err != nil {
+		return fmt.Errorf("failed to load private key: %v", err)
+	}
+	// Convert string to bytes and parse
+	private, err := ssh.ParsePrivateKey([]byte(privateKeyStr))
+	if err != nil {
+		return fmt.Errorf("failed to parse private key: %v", err)
+	}
+
+	// Load the authorized public key from repo
+	authorizedKeyBytes, err := os.ReadFile("./authorised/go_usa_stock.pub")
+	if err != nil {
+		return fmt.Errorf("failed to load authorized key: %v", err)
+	}
+	// Parse it
+	authorizedPubKey, _, _, _, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse authorized key: %v", err)
+	}
+	authorizedFingerprint := ssh.FingerprintSHA256(authorizedPubKey)
+	fmt.Printf("✅ Loaded authorized key: %s\n", authorizedFingerprint)
+
 	// just a reminder- sftp (file operations) > ssh (encryption) > tcp (network connection)
 
 	config := &ssh.ServerConfig{
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 			clientFingerprint := ssh.FingerprintSHA256(pubKey)
-           
+
 			if clientFingerprint == authorizedFingerprint {
-                fmt.Printf("✅ Authorized user '%s' with key %s\n", c.User(), clientFingerprint)
-                return &ssh.Permissions{
-                    Extensions: map[string]string{
-                        "pubkey-fp": clientFingerprint,
-                    },
-                }, nil
-            }
-            
-            fmt.Printf("❌ Rejected unauthorized user '%s' with key %s\n", c.User(), clientFingerprint)
-            return nil, fmt.Errorf("unauthorized key")
+				fmt.Printf("✅ Authorized user '%s' with key %s\n", c.User(), clientFingerprint)
+				return &ssh.Permissions{
+					Extensions: map[string]string{
+						"pubkey-fp": clientFingerprint,
+					},
+				}, nil
+			}
+
+			fmt.Printf("❌ Rejected unauthorized user '%s' with key %s\n", c.User(), clientFingerprint)
+			return nil, fmt.Errorf("unauthorized key")
 		},
 	}
 	config.AddHostKey(private)
@@ -79,9 +79,8 @@ func Server() error {
 			continue
 		}
 
-
-        // ✅ ADD THIS LOG
-        fmt.Printf("🔗 TCP connection accepted from %s\n", conn.RemoteAddr())
+		// ✅ ADD THIS LOG
+		fmt.Printf("🔗 TCP connection accepted from %s\n", conn.RemoteAddr())
 
 		// Handle each connection in a goroutine
 		go handleConnection(conn, config)
@@ -128,7 +127,7 @@ func handleConnection(netConn net.Conn, config *ssh.ServerConfig) {
 func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 	defer channel.Close()
 
-	downloadsPath := "/app/downloads"  // Absolute path
+	downloadsPath := "/app/downloads" // Absolute path
 	absPath, err := filepath.Abs(downloadsPath)
 	if err != nil {
 		sentry.Notify(err, "failed to get absolute path for downloads dir")

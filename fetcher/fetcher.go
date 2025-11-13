@@ -102,13 +102,12 @@ func DlSanmar() error {
 
 	path := "/SanMarPDD"
 	filename := "sanmar_shopify.csv"
-	downloadsPath := "/app/downloads"  // Absolute path
-	
+	downloadsPath := "/app/downloads" // Absolute path
 
 	if err := os.MkdirAll(downloadsPath, 0755); err != nil {
-        sentry.Notify(err, "failed to create downloads directory")
-        return fmt.Errorf("failed to create directory %s: %w", downloadsPath, err)
-    }
+		sentry.Notify(err, "failed to create downloads directory")
+		return fmt.Errorf("failed to create directory %s: %w", downloadsPath, err)
+	}
 
 	client, err := connect()
 	if err != nil {

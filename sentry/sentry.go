@@ -11,15 +11,15 @@ import (
 
 func Setup() {
 
-	secrets , err := utils.GetDockerSecret()
+	secrets, err := utils.GetDockerSecret()
 	// Check for the error *immediately*
-    if err != nil {
-        log.Fatalf("Failed to retrieve secrets: %s", err)
-    }
+	if err != nil {
+		log.Fatalf("Failed to retrieve secrets: %s", err)
+	}
 
 	err = sentry.Init(sentry.ClientOptions{
-		Dsn:   secrets["sentry_dsn"],
-		Debug: false,
+		Dsn:     secrets["sentry_dsn"],
+		Debug:   false,
 		Release: "dev",
 	})
 	if err != nil {

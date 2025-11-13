@@ -11,7 +11,7 @@ func main() {
 
 	sentry.Setup()
 
-	err:= fetcher.DlSanmar()
+	err := fetcher.DlSanmar()
 	if err != nil {
 		log.Printf("ERROR: dl error: %v", err)
 		sentry.Notify(err, "download error in main func ")
