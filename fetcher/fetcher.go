@@ -22,6 +22,19 @@ import (
 var downloadMutex sync.Mutex
 var downloadInProgress sync.Map // tracks if download is in progress for a file
 
+var (
+	secrets     map[string]string
+	secretsOnce sync.Once
+	secretsErr  error
+)
+
+func loadSecrets() (map[string]string, error) {
+	secretsOnce.Do(func() {
+		secrets, secretsErr = utils.GetDockerSecret()
+	})
+	return secrets, secretsErr
+}
+
 func GetDir(dir string) error {
 	client, err := connect()
 	if err != nil {
@@ -45,13 +58,9 @@ func GetDir(dir string) error {
 // EnsureFresh checks if file is fresh and triggers background download if stale
 // Returns immediately - does not block
 func EnsureFresh(maxAge time.Duration) {
-	env, err := utils.GetEnv()
-	if err != nil {
-		fmt.Printf("Warning: failed to get env for freshness check: %v\n", err)
-		return
-	}
-	filename := env["FILENAME"]
-	finalFilePath := filepath.Join("downloads", filename)
+
+	filename := "sanmar_shopify.csv"
+	finalFilePath := filepath.Join("/app/downloads", filename)
 
 	// Check if file exists and is fresh
 	info, err := os.Stat(finalFilePath)
@@ -90,16 +99,14 @@ func DlSanmar() error {
 
 	start := time.Now()
 	fmt.Printf("download started at %s\n", start.Format(time.RFC1123))
-	env, err := utils.GetEnv()
-	if err != nil {
-		return fmt.Errorf("failed to get env: %w", err)
-	}
-	path := env["DIR"]
-	filename := env["FILENAME"]
 
-	// Ensure downloads directory exists
-	if err := os.MkdirAll("downloads", 0755); err != nil {
-		return fmt.Errorf("failed to create downloads directory: %w", err)
+	path := "/SanMarPDD"
+	filename := "sanmar_shopify.csv"
+	downloadsPath := "/app/downloads" // Absolute path
+
+	if err := os.MkdirAll(downloadsPath, 0755); err != nil {
+		sentry.Notify(err, "failed to create downloads directory")
+		return fmt.Errorf("failed to create directory %s: %w", downloadsPath, err)
 	}
 
 	client, err := connect()
@@ -110,8 +117,8 @@ func DlSanmar() error {
 	defer client.Close()
 
 	remoteFilePath := filepath.Join(path, filename)
-	tempFilePath := filepath.Join("downloads", filename+".tmp")
-	finalFilePath := filepath.Join("downloads", filename)
+	tempFilePath := filepath.Join(downloadsPath, filename+".tmp")
+	finalFilePath := filepath.Join(downloadsPath, filename)
 
 	// Step 1: Download the entire file efficiently to a temp file
 	fmt.Println("Downloading file from SFTP...")
@@ -159,7 +166,7 @@ func DlSanmar() error {
 
 	// Create processed output file with different temp name
 	// This ensures atomic replacement - we never overwrite the final file until it's complete
-	processedTempPath := filepath.Join("downloads", filename+".processed.tmp")
+	processedTempPath := filepath.Join(downloadsPath, filename+".processed.tmp")
 	processedFile, err := os.Create(processedTempPath)
 	if err != nil {
 		os.Remove(tempFilePath) // cleanup on error
@@ -213,15 +220,15 @@ func DlSanmar() error {
 
 func connect() (*sftp.Client, error) {
 
-	env, err := utils.GetEnv()
+	secrets, err := loadSecrets()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get env: %w", err)
 	}
 
-	url := env["URL"]
-	port := env["PORT"]
-	username := env["USERNAME"]
-	password := env["PASSWORD"]
+	url := secrets["go_remote_url"]
+	port := secrets["go_remote_port"]
+	username := secrets["go_remote_username"]
+	password := secrets["go_remote_password"]
 	host := fmt.Sprintf("%s:%s", url, port)
 
 	// SSH client config

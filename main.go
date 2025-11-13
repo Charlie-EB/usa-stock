@@ -1,22 +1,24 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"m/fetcher"
 	"m/sentry"
 	"m/server"
-	"m/utils"
 )
 
 func main() {
-	env, _ := utils.GetEnv()
-	fmt.Println("from main", env["FILENAME"])
 
 	sentry.Setup()
 
-	fetcher.DlSanmar()
-	err := server.Server()
+	err := fetcher.DlSanmar()
 	if err != nil {
+		log.Printf("ERROR: dl error: %v", err)
+		sentry.Notify(err, "download error in main func ")
+	}
+	err = server.Server()
+	if err != nil {
+		log.Printf("ERROR: main server error: %v", err)
 		sentry.Notify(err, "main server error")
 	}
 
